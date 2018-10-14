@@ -1,75 +1,84 @@
 # Overview
 A docker container to build a ZCash node from source and run it in a container.
 
-# Build it:
+## Zcash Data Storage ##
+The "Zcash data" (i.e. blockchain data, wallet) are very large and not suitable for storing in the container’s writable layer. The Zcash data is large and to download/regenerate it each time you regenerate a container would be terrible. Also you may want to have multiple Zcash containers over time and you wouldn't want the local copy of the blockchain destroyed along with it. So the Zcash data is tored in [Docker volumes](https://docs.docker.com/storage/volumes/). The Zcash blockchain data (i.e. the value for zcashd's `-datadir` arg) is stored in a Docker volume named `zcash-datadir`.
+
+So if you kill the container and associated iamges and rebuild it, it will only pull and rebuild the source, it won't need to download and reindex the blockchain or zkSNARK parameters.
+
+#SECURITY NOTES #
+A couple key things to keep in mind with regards to security:
+
+* The Zcash node's wallet is stored in the `zcash-datadir` volume above. So if you have any value stored in that wallet any other container that mounts it will have access to the wallet.
+* See the `zcash.conf` file in the Dockerfile has other security elements in it that you need to be cautious about (e.g. `rpcuser` and `rpcpassword`).
+
+# Build it: #
 
     docker build -t zcash .
 
-# Run it from image:
+# Run it from image: #
 
-    docker run --detach --name zc --publish 8000:8232 zcash:latest
+```
+docker run --detach \
+--name zc \
+-P \
+--mount source=zcash-datadir,target=/zcash-datadir \
+zcash:latest
+```
 
-# Gracefully Stop the Container
+# Gracefully Stop the Container #
 
-    docker exec zc ./src/zcash-cli stop
+    docker exec zc ./src/zcash-cli --datadir=/zcash-datadir stop
 
-
-# Start it from an existing stopped container:
+# Start it from an existing stopped container: #
 
     docker start zc
 
-# Use It
+# Use It #
 With the container running (in another tab if running interactively):
 
-## See what ZCash is doing:
+## See what ZCash is doing: ##
 
 or for a streaming view of debug.log:
 
-    docker container exec zc tail -f /root/.zcash/debug.log
+    docker container exec zc tail -f /zcash-datadir/debug.log
 
 to view the config:
 
-    docker exec zc cat /root/.zcash/zcash.conf
+    docker container exec zc cat /zcash-datadir/zcash.conf
+
+## Run ZCash RPC commands: ##
+_With the container running..._
+
+    docdocker exec zc ./src/zcash-cli --datadir=/zcash-datadir help
+
+    docdocker exec zc ./src/zcash-cli --datadir=/zcash-datadir getinfo
+
+    docdocker exec zc ./src/zcash-cli --datadir=/zcash-datadir getnetworksolps
+
+    docdocker exec zc ./src/zcash-cli --datadir=/zcash-datadir getblockcount
 
 
-## Run ZCash RPC commands:
+## Save Container with State into Image ##
 
-    docker exec zc ./src/zcash-cli help
+    ZHEAD=$(docker container exec --workdir /usr/src/zcash/zcash-src zc cat ./.git/FETCH_HEAD); docker container commit --message "zcash FETCH_HEAD $ZHEAD" zc zcash:container-backup
 
-    docker exec zc ./src/zcash-cli getinfo
-
-    docker exec zc ./src/zcash-cli getnetworksolps
-
-    docker exec zc ./src/zcash-cli getblockcount
-
-
-## Save Container with State into Image
-
-    ZBC=$(docker exec zc ./src/zcash-cli getblockcount); docker container commit --message "zcash blockcount $ZBC" zc zcash:blockcount_$ZBC
-
-You can later run a container from that image like this:
-
-    docker run --detach --name zc zcash:blockcount_20848
-
-To run it with publishing port 8232 of container to port 8000 on host:
+To run the saved image with mapping port 8000 on the host to port 8232 on the container (port 8232 is exposed in the Dockerfile, but this maps it to a specific host port):
  
-    docker run --detach --name zc --publish 8232:8232 zcash:blockcount_20848
+    docker run --detach --name zc --publish 8000:8232 zcash:latest
 
+## Update Zcash to the latest version from source ##
+With the blockchain stored in the Docker Volume as described above you won't loose the blockchain when rebuilding the container. So to update to a new version in the source, just rebuild the image from the Dockerfile and update the `ZCASH_TAG` Docker ARG like. For example, to rebuild the container using the source tag `v2.0.1-rc1`, run the following:
+
+    docker build --build-arg ZCASH_TAG=v2.0.1-rc1 -t zcash:v2.0.1-rc1 .
 
 # Exposed Ports
 ## To see what ports the container is exposing already:
 
     docker container ls
 
-## To expose ports
-You can only expose ports in docker when creating a new container. So best to do it when running it above. However, if you've already started a container and want to expose ports on it, save the container to an image (see _Save Container with State into Image_ above) and then run a new container from that saved image with the `--publish` parameter like so:
 
-    docker run --detach --name zc --expose 8232 --publish 8000:8232 zcash:blockcount_322963
-
-The above maps the container's port 8232 to port 8000 on the host. 
-
-
-# TODO
+# TODO #
 - Dockerfile-base - Base image with only necessary dependencies to build zcash
     - Dockerfile-dev - should build from source and stop
         - should COPY zcash source from a ./zcash-src directory
