@@ -6,17 +6,19 @@ The "Zcash data" (i.e. blockchain data, wallet) are very large and not suitable 
 
 So if you kill the container and associated iamges and rebuild it, it will only pull and rebuild the source, it won't need to download and reindex the blockchain or zkSNARK parameters.
 
-#SECURITY NOTES #
+### Security Notes ###
 A couple key things to keep in mind with regards to security:
 
 * The Zcash node's wallet is stored in the `zcash-datadir` volume above. So if you have any value stored in that wallet any other container that mounts it will have access to the wallet.
 * See the `zcash.conf` file in the Dockerfile has other security elements in it that you need to be cautious about (e.g. `rpcuser` and `rpcpassword`).
 
-# Build it: #
+# Build it #
 
     docker build -t zcash .
 
-# Run it from image: #
+# Run it #
+
+## From the built image ##
 
 ```
 docker run --detach \
@@ -26,18 +28,18 @@ docker run --detach \
 zcash:latest
 ```
 
-# Gracefully Stop the Container #
+## Gracefully Stop the Container ##
 
     docker exec zc ./src/zcash-cli --datadir=/zcash-datadir stop
 
-# Start it from an existing stopped container: #
+## Start it from an existing stopped container ##
 
     docker start zc
 
 # Use It #
 With the container running (in another tab if running interactively):
 
-## See what ZCash is doing: ##
+## See what Zcash is doing ##
 
 or for a streaming view of debug.log:
 
@@ -47,7 +49,7 @@ to view the config:
 
     docker container exec zc cat /zcash-datadir/zcash.conf
 
-## Run ZCash RPC commands: ##
+## Run Zcash RPC commands ##
 _With the container running..._
 
     docdocker exec zc ./src/zcash-cli --datadir=/zcash-datadir help
@@ -59,7 +61,9 @@ _With the container running..._
     docdocker exec zc ./src/zcash-cli --datadir=/zcash-datadir getblockcount
 
 
-## Save Container with State into Image ##
+# Misc #
+
+## Save Container with State into a new image ##
 
     ZHEAD=$(docker container exec --workdir /usr/src/zcash/zcash-src zc cat ./.git/FETCH_HEAD); docker container commit --message "zcash FETCH_HEAD $ZHEAD" zc zcash:container-backup
 
@@ -72,7 +76,7 @@ With the blockchain stored in the Docker Volume as described above you won't loo
 
     docker build --build-arg ZCASH_TAG=v2.0.1-rc1 -t zcash:v2.0.1-rc1 .
 
-# Exposed Ports
+# Exposed Ports #
 ## To see what ports the container is exposing already:
 
     docker container ls
