@@ -16,6 +16,8 @@ A couple key things to keep in mind with regards to security:
 
     docker build -t zcash .
 
+_also in `built-image.sh`_
+
 # Run it #
 
 ## From the built image ##
@@ -25,8 +27,12 @@ docker run --detach \
 --name zc \
 -P \
 --mount source=zcash-datadir,target=/zcash-datadir \
+--publish 8000:8232 \
 zcash:latest
 ```
+
+_also in `run-image.sh`_
+
 
 ## Gracefully Stop the Container ##
 
@@ -52,13 +58,13 @@ to view the config:
 ## Run Zcash RPC commands ##
 _With the container running..._
 
-    docdocker exec zc ./src/zcash-cli --datadir=/zcash-datadir help
+    docker exec zc ./src/zcash-cli --datadir=/zcash-datadir help
 
-    docdocker exec zc ./src/zcash-cli --datadir=/zcash-datadir getinfo
+    docker exec zc ./src/zcash-cli --datadir=/zcash-datadir getinfo
 
-    docdocker exec zc ./src/zcash-cli --datadir=/zcash-datadir getnetworksolps
+    docker exec zc ./src/zcash-cli --datadir=/zcash-datadir getnetworksolps
 
-    docdocker exec zc ./src/zcash-cli --datadir=/zcash-datadir getblockcount
+    docker exec zc ./src/zcash-cli --datadir=/zcash-datadir getblockcount
 
 
 # Misc #
@@ -72,9 +78,9 @@ To run the saved image with mapping port 8000 on the host to port 8232 on the co
     docker run --detach --name zc --publish 8000:8232 zcash:latest
 
 ## Update Zcash to the latest version from source ##
-With the blockchain stored in the Docker Volume as described above you won't loose the blockchain when rebuilding the container. So to update to a new version in the source, just rebuild the image from the Dockerfile and update the `ZCASH_TAG` Docker ARG like. For example, to rebuild the container using the source tag `v2.0.1-rc1`, run the following:
+With the blockchain stored in the Docker Volume as described above you won't loose the blockchain when rebuilding the container. So to update to a new version in the source, just rebuild the image from the Dockerfile and update the `ZCASH_TAG` Docker ARG like. For example, to rebuild the container using the source tag `v4.0.1-rc1`, run the following:
 
-    docker build --build-arg ZCASH_TAG=v2.0.1-rc1 -t zcash:v2.0.1-rc1 .
+    docker build --build-arg ZCASH_TAG=v2.0.1-rc1 -t zcash:v4.0.1-rc1 .
 
 # Exposed Ports #
 ## To see what ports the container is exposing already:

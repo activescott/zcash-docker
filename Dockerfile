@@ -1,10 +1,14 @@
 FROM ubuntu:latest
 
+# This fixes stupid tzdata package: https://dev.to/setevoy/docker-configure-tzdata-and-timezone-during-build-20bk
+ENV TZ=America/Los_Angeles
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 WORKDIR /usr/src/zcash
 
 # Most of this from https://zcash.readthedocs.io/en/latest/rtd_pages/user_guide.html
 
-# Install dependencies - https://zcash.readthedocs.io/en/latest/rtd_pages/user_guide.html
+# Install dependencies - https://zcash.readthedocs.io/en/latest/rtd_pages/Debian-Ubuntu-build.html
 RUN apt-get update && apt-get install -y \
       autoconf \
       automake \
@@ -18,8 +22,8 @@ RUN apt-get update && apt-get install -y \
       m4 \
       ncurses-dev \
       pkg-config \
-      python \
-      python-zmq \
+      python3 \
+      python3-zmq \
       unzip \
       wget \
       zlib1g-dev \
@@ -30,7 +34,7 @@ RUN apt-get update && apt-get install -y \
 RUN git clone https://github.com/zcash/zcash.git zcash-src
 WORKDIR zcash-src
 
-ARG ZCASH_TAG=v2.0.0
+ARG ZCASH_TAG=v4.0.0
 
 # NOTE: if you want to cause it to re-fetch, just append a comment to the below command:
 
@@ -46,6 +50,7 @@ RUN git clean -f -x -d .
 RUN ./zcutil/fetch-params.sh
 
 ##### Build #####
+RUN ./zcutil/clean.sh
 RUN ./zcutil/build.sh -j$(nproc)
 
 ## Testing ##
